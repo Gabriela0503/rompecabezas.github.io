@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rompecabezas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+        #puzzle-container {
+            width: 300px;
+            height: 300px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            margin: auto;
+            border: 3px solid #333;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        .piece {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ccc;
+            background-size: 300px 300px;
+            cursor: grab;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .piece:active {
+            cursor: grabbing;
+        }
+
+        #win-message {
+            display: none;
+            font-size: 1.2rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5 text-center">
+        <div class="card shadow-lg p-4">
+            <h1 class="mb-4 text-primary">🧩 Rompecabezas Divertido</h1>
+
+            <!-- Selector de imágenes -->
+            <div class="mb-3">
+                <label for="image-selector" class="form-label fw-bold">Selecciona una imagen:</label>
+                <select id="image-selector" class="form-select w-50 mx-auto" onchange="changeImage()">
+                    <option value="https://wallpaperaccess.com/full/2186121.jpg">Imagen 1</option>
+                    <option
+                        value="https://i.pinimg.com/originals/a8/e3/9b/a8e39b287c7cd7af410dc230c36c226f.jpg">Imagen 2
+                    </option>
+                    <option
+                        value="https://dogtowndogtraining.com/wp-content/uploads/2012/06/300x300-061-e1340955308953.jpg">Imagen
+                        3</option>
+                </select>
+            </div>
+
+            <!-- Contenedor del rompecabezas -->
+            <div id="puzzle-container" class="my-4"></div>
+
+            <!-- Contador de movimientos y temporizador -->
+            <p class="mt-3 fw-bold">Movimientos: <span id="move-counter" class="text-primary">0</span></p>
+            <p class="mt-2 fw-bold">⏱️ Tiempo: <span id="timer" class="text-danger">00:00</span></p>
+
+            <!-- Mensaje de victoria -->
+            <p id="win-message" class="alert alert-success" role="alert">🎉 ¡Has completado el rompecabezas!</p>
+
+            <!-- Botones para iniciar y reiniciar -->
+            <button class="btn btn-success me-2" id="start-btn" onclick="startTimer()">▶️ Iniciar</button>
+            <button class="btn btn-outline-primary mt-3" onclick="shufflePieces()">🔄 Reiniciar</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById("puzzle-container");
+        const moveCounter = document.getElementById("move-counter");
+        const winMessage = document.getElementById("win-message");
+        const timerDisplay = document.getElementById("timer");
+        const startBtn = document.getElementById("start-btn");
+
+        let imageUrl = document.getElementById("image-selector").value;
+        let pieces = [];
+        let moves = 0;
+        let correctOrder = [];
+        let draggedPiece = null;
+        let seconds = 0, minutes = 0, timerInterval;
+        let timerRunning = false;
+
+        // Función para crear las piezas del rompecabezas
+        function createPieces() {
+            pieces = [];
+            container.innerHTML = "";
+            moves = 0;
+            moveCounter.textContent = moves;
+            winMessage.style.display = "none";
+            correctOrder = [];
+
+            for (let i = 0; i < 9; i++) {
+                let piece = document.createElement("div");
+                piece.classList.add("piece");
+                piece.style.backgroundImage = `url(${imageUrl})`;
+                piece.style.backgroundSize = "300px 300px";
+                piece.style.backgroundPosition = `-${(i % 3) * 100}px -${Math.floor(i / 3) * 100}px`;
+                piece.draggable = true;
+                piece.dataset.index = i;
+                pieces.push(piece);
+                correctOrder.push(piece);
+            }
+            shufflePieces(); // Mezclar las piezas al inicio
+        }
+
+        // Función para mezclar las piezas
+        function shufflePieces() {
+            let shuffledPieces = [...pieces].sort(() => Math.random() - 0.5);
+            container.innerHTML = "";
+            shuffledPieces.forEach(piece => container.appendChild(piece));
+            moves = 0;
+            moveCounter.textContent = moves;
+            resetTimer(); // Reiniciar el temporizador
+        }
+
+        // Función para cambiar la imagen del rompecabezas
+        function changeImage() {
+            imageUrl = document.getElementById("image-selector").value;
+            createPieces();
+        }
+
+        // Función para iniciar el temporizador solo al hacer clic en "Iniciar"
+        function startTimer() {
+            if (!timerRunning) {
+                timerRunning = true;
+                startBtn.disabled = true; // Desactivar botón después de iniciar
+                timerInterval = setInterval(() => {
+                    seconds++;
+                    if (seconds === 60) {
+                        seconds = 0;
+                        minutes++;
+                    }
+                    timerDisplay.textContent = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+                }, 1000);
+            }
+        }
+
+        // Función para reiniciar el temporizador
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerDisplay.textContent = "00:00";
+            seconds = 0;
+            minutes = 0;
+            timerRunning = false;
+            startBtn.disabled = false; // Rehabilitar el botón al reiniciar
+        }
+
+        // Evento para arrastrar la pieza
+        container.addEventListener("dragstart", (e) => {
+            draggedPiece = e.target;
+        });
+
+        container.addEventListener("dragover", (e) => {
+            e.preventDefault();
+        });
+
+        // Evento para soltar la pieza
+        container.addEventListener("drop", (e) => {
+            if (draggedPiece && e.target.classList.contains("piece")) {
+                let tempIndex = draggedPiece.dataset.index;
+                draggedPiece.dataset.index = e.target.dataset.index;
+                e.target.dataset.index = tempIndex;
+
+                // Intercambiar piezas visualmente
+                let temp = document.createElement("div");
+                container.replaceChild(temp, e.target);
+                container.replaceChild(e.target, draggedPiece);
+                container.replaceChild(draggedPiece, temp);
+
+                moves++;
+                moveCounter.textContent = moves;
+                checkWin();
+            }
+        });
+
+        // Verificar si el rompecabezas está completo
+        function checkWin() {
+            let currentOrder = Array.from(container.children);
+            if (currentOrder.every((piece, index) => piece.dataset.index == correctOrder[index].dataset.index)) {
+                clearInterval(timerInterval); // Detener el temporizador
+                winMessage.style.display = "block";
+            }
+        }
+
+        // Inicializar las piezas al cargar la página
+        createPieces();
+    </script>
+</body>
+
+</html>
